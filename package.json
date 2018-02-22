@@ -1,0 +1,14 @@
+{
+  "name": "@wazzu/iluvatar-core",
+  "version": "0.0.1-beta",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Raúl Alexander Mendoza Muñoz",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "typescript": "~2.7.2"
+  }
+}
