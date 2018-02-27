@@ -1,14 +1,14 @@
-/**
- * Tipos basicos para los campos de la base de datos
- */
-export enum FieldType { int, float, string, bool, datetime };
+import { DatabaseType } from './iluvatar-database';
+
+export type ClassType = { new(...args: any[]) }
+export type JavascriptType = string | ClassType;
 
 /**
  * Estructura basica para un campo de la base de datos
  */
 export type Field = {
-    name: string,
-    type: FieldType | Field | Field[] | string,
+    type: Field | Field[] | string,
+    //javascriptType?: string | ClassType,
     required?: boolean,
     default?: any;
     unique?: boolean,
@@ -16,12 +16,18 @@ export type Field = {
     isPrimaryKey?: boolean
 };
 
+export type Fields = { [key: string]: Field }
+export type JavascriptTypes = { [subKey: string]: JavascriptType };
+export type TypesBySchema = { [key: string]: JavascriptTypes };
+
 /**
  * Clase que almacena la estructura de como deben estar formados los datos en
  * base de datos
  */
 export class Schema {
-    private _fields;
+    private static dbTypesSupported: DatabaseType[] = [];
+    private static typesBySchema: TypesBySchema = {};
+    private javascriptTypes: JavascriptTypes;
     protected rolesToEdit: any[] = [];
     protected rolesToCreate: any[] = [];
     protected rolesToUpdate: any[] = [];
@@ -32,16 +38,83 @@ export class Schema {
      * @param _name Nombre del esquema que se usará para almacenar u obtener datos
      * @param _fields Arreglo de la estructura de campois que representa el esquema de cada campo en particular
      */
-    protected constructor(private _name: string, ..._fields: Field[]) {
-        this._fields = _fields;
+    protected constructor(private _name: string, private _fields: Fields) {
+        // If the types was previusly stored, then add these types to the attribute
+        this.javascriptTypes = Schema.typesBySchema[_name];
+        if (this.javascriptTypes) {
+            return;
+        }
+
+        // Store in a static hash the javascripts types for the next new instances
+        let typesBySchema: JavascriptTypes = {};
+        for (let fieldName in _fields) {
+            let field = _fields[fieldName];
+            if (typeof(field.type) == 'string') {
+                let typeSetted = false;
+                for (let type of Schema.dbTypesSupported) {
+                    if (type.databaseType.test(field.type)) {
+                        typeSetted = true;
+                        typesBySchema[fieldName] = type.javascriptType;
+                        break;
+                    }
+                }
+                if (!typeSetted) {
+                    throw `The type ${field.type} is incorrect`;
+                }
+            }
+        }
+        this.javascriptTypes = Schema.typesBySchema[_name] = typesBySchema;
+    }
+
+    public static setDbTypesSupported(databaseTypes: DatabaseType[]): void {
+        Schema.dbTypesSupported = databaseTypes;
     }
 
     public get name(): string {
         return this._name;
     }
 
-    public get fields(): Field[] {
+    public get fields(): Fields {
         return this._fields;
+    }
+
+    public cleanAndVerifyValues(payload: any): any {
+        // I create a new value in case that is sended a value that not exists in Field's array
+        let payloadVerified: any = {};
+        let fieldsEmptyRequired: string[] = [];
+        for (let fieldName in this.fields) {
+            let field = this.fields[fieldName];
+            let payloadValue = payload[fieldName];
+            let javascriptType = this.javascriptTypes[fieldName];
+            if (payloadValue) {
+                this.verifyType(payloadValue, javascriptType);
+                payloadVerified[fieldName] = payloadValue;
+            } else {
+                let defaultValue = field.default;
+                if (defaultValue) {
+                    this.verifyType(defaultValue, javascriptType);
+                    payloadVerified[fieldName] = defaultValue;
+                } else if (field.required) {
+                    fieldsEmptyRequired.push(fieldName);
+                }
+            }
+        }
+        if (fieldsEmptyRequired.length > 0) {
+            throw `The folow fields are required and haven't default value: ${fieldsEmptyRequired.join(', ')}`;
+        }
+        return payloadVerified;
+    }
+
+    public cleanValues(payload: any): any {
+        let payloadClean: any = {};
+        for (let fieldName in this.fields) {
+            let payloadValue = payload[fieldName];
+            if (payloadValue) {
+                this.verifyType(payloadValue, this.javascriptTypes[fieldName]);
+                payloadClean[fieldName] = payloadValue;
+            }
+        }
+        return payloadClean;
     }
 
     public canEdit(rol: any): boolean {
@@ -58,5 +131,17 @@ export class Schema {
 
     public canDelete(rol: any): boolean {
         return this.rolesToDelete.length == 0 ? true : this.rolesToDelete.indexOf(rol) >= 0;
+    }
+
+    private verifyType(value: any, javascriptType: JavascriptType): void {
+        if (typeof(javascriptType) == 'string') {
+            if (typeof(value) != javascriptType) {
+                throw `The type sended for the value ${value} is invalid`;
+            }
+        } else {
+            if (!(value instanceof javascriptType)) {
+                throw `The type sended for the value ${value} is invalid`;
+            }
+        }
     }
 }

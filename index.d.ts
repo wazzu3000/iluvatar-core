@@ -1,26 +1,31 @@
 declare module '@wazzu/iluvatar-core' {
 
-    /**
-     * Tipos basicos para los campos de la base de datos
-     */
-    enum FieldType { int, float, string, bool, datetime }
+    export type ClassType = { new(...args: any[]) }
+    export type JavascriptType = string | ClassType;
 
     /**
      * Estructura basica para un campo de la base de datos
      */
-    type Field = {
-        name: string,
-        type: FieldType | Field | Field[] | string,
+    export type Field = {
+        type: Field | Field[] | string,
+        //javascriptType?: string | ClassType,
         required?: boolean,
         default?: any;
         unique?: boolean,
         reference?: string,
         isPrimaryKey?: boolean
-    }
+    };
+
+    export type Fields = { [key: string]: Field }
+    export type JavascriptTypes = { [subKey: string]: JavascriptType };
+    export type TypesBySchema = { [key: string]: JavascriptTypes };
 
     class Schema {
+        private static dbTypesSupported: DatabaseType[];
+        private static typesBySchema: TypesBySchema;
+        private javascriptTypes: JavascriptTypes;
         private _name: string;
-        private _fields: Field[];
+        private _fields: Fields;
         protected rolesToEdit: any[];
         protected rolesToCreate: any[];
         protected rolesToUpdate: any[];
@@ -33,12 +38,16 @@ declare module '@wazzu/iluvatar-core' {
          * @param _name Nombre del esquema que se usará para almacenar u obtener datos
          * @param _fields Arreglo de la estructura de campois que representa el esquema de cada campo en particular
          */
-        public constructor(_name: string, ..._fields: Field[]);
+        public constructor(_name: string, _fields: Fields);
 
+        public static setDbTypesSupported(databaseTypes: DatabaseType[]): void
+        public cleanAndVerifyValues(payload: any): any;
+        public cleanValues(payload: any): any;
         public canEdit(rol: any): boolean;
         public canCreate(rol: any): boolean;
         public canUpdate(rol: any): boolean;
         public canDelete(rol: any): boolean;
+        private verifyType(value: any, field: Field): void;
     }
 
     interface IController {
@@ -83,7 +92,7 @@ declare module '@wazzu/iluvatar-core' {
          * @param schemaName Clave con la que es guardado el esquema en memoria
          * @param schema Esquema a guardar en memoria
          */
-        public addSchema(schemaName: string, schema: Schema): void;
+        public addSchema(schemaName: string, schema: typeof Schema): void;
 
         /**
          * Busca y obtiene un esquema en memoria, en caso de no encontrar dicho
@@ -135,5 +144,138 @@ declare module '@wazzu/iluvatar-core' {
         public database: string;
         public port: number;
         public host: string;
+    }
+
+    /**
+     * Tipos basicos para los campos de la base de datos
+     */
+    enum FieldType { int, float, string, bool, datetime }
+
+    class Where {
+        private _column: string;
+        private _condition: string;
+        private _value: string
+        public column: string;
+        public condition: string;
+        public value: string;
+
+        public constructor(_column: string, _condition: string, _value: string);
+    }
+
+    class Join {
+        private _tableName: string;
+        private _localColumnName: string;
+        private _foreignColumnName: string;
+        public tableName: string;
+        public localColumnName: string;
+        public foreignColumnName: string;
+
+        public constructor(_tableName: string, _localColumnName: string, _foreignColumnName: string);
+    }
+
+    abstract class CrudMaster {
+        protected schema: Schema;
+        protected schemaName
+    
+        public constructor(schemaName: string);
+        public sendError<T>(message: string): Promise<T>;
+        public abstract doQuery(): Promise<any>;
+    }
+
+    abstract class WhereCrud extends CrudMaster {
+        protected wheres: Where[];
+    
+        public constructor(schemaName: string);
+    
+        public addWhere(where: Where): WhereCrud;
+    }
+
+    abstract class CreateCrud extends CrudMaster {
+        protected values: any;
+
+        public constructor(schemaName: string, values: any);
+    }
+
+    abstract class FindCrud extends WhereCrud {
+        protected fields: string [];
+        protected joins: Join[];
+        protected ordersBy: string [];
+        protected groupsBy: string[]
+    
+        public constructor(schemaName: string, ...fields: string[]);
+    
+        public addJoin(join: Join): FindCrud ;
+    
+        public setOrderBy(...ordersBy: string[]): FindCrud;
+    
+        public setGroupBy(...groupsBy: string[]): FindCrud;
+    }
+
+    abstract class UpdateCrud extends WhereCrud {
+        protected values: any;
+
+        public constructor(schemaName: string, values: any);
+    }
+
+    abstract class DeleteCrud extends WhereCrud {
+
+    }
+
+    type DatabaseType = {
+        databaseType: RegExp,
+        javascriptType: string | ClassType;
+    }
+
+    /**
+     * Plantilla inicial para las operaciones básicas de una base de datos
+     */
+    abstract class IluvatarDatabase {
+        private _schemaName: string;
+        protected _defaultId: string;
+        public defaultId: string;
+        public schemaName: string;
+
+        public constructor();
+        public constructor(_schemaName: string);
+        
+        /**
+         * Plantilla para generar una nueva conexión a base de datos, se debe
+         * devolver a si mismo cuando la conexión sea exitosa
+         */
+        abstract openConnection(): Promise<IluvatarDatabase>;
+    
+        /**
+         * Plantilla para generar la busqueda de datos, este método deberá devolver
+         * una nueva instancia de la clase que herede de `FindCrud`
+         */
+        abstract find(...fields: string[]): FindCrud;
+    
+        /**
+         * Plantilla para generar una actualización de datos, este método deberá
+         * devolver una nueva instancia de la clase que herede de `UpdateCrud`
+         */
+        abstract update(values: any): UpdateCrud;
+    
+        /**
+         * Plantilla para crear datos, este método deberá devolver una nueva
+         * instancia de la clase que herede de `CreateCrud`
+         */
+        abstract create(values: any): CreateCrud;
+    
+        /**
+         * Plantilla para generar la eliminación de datos, este método deberá
+         * devolver una nueva instancia de la clase que herede de `DeleteCrud`
+         */
+        abstract delete(): DeleteCrud;
+    
+        /**
+         * Intenta cerrar una conexión con la base de datos, si esta es correcta el
+         * parametro de la promesa debe ser verdadero, falso en caso contrario.
+         */
+        abstract closeConnection(): void;
+
+        abstract newInstance(): IluvatarDatabase;
+        abstract newInstance(_schemaName: string): IluvatarDatabase;
+        abstract getTypesSupported(): DatabaseType[];
     }
 }

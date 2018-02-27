@@ -49,7 +49,7 @@ export class Config {
      * @param schemaName Clave con la que es guardado el esquema en memoria
      * @param schema Esquema a guardar en memoria
      */
-    public addSchema(schemaName: string, schema: Schema): void {
+    public addSchema(schemaName: string, schema: typeof Schema): void {
         this.schemas[schemaName] = schema;
     }
 
@@ -59,7 +59,8 @@ export class Config {
      * @param schemaName Clave del esquema con el que fue almacenado
      */
     public getSchema(schemaName: string): Schema {
-        return this.schemas[schemaName];
+        let SchemaClass = this.schemas[schemaName];
+        return SchemaClass ? new SchemaClass() : null;
     }
 
     /**
