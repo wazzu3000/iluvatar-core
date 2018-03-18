@@ -5,4 +5,5 @@ export class DatabaseModel {
     public database: string = 'iluvatar';
     public port: number = 0;
     public host: string = 'localhost';
+    public idFieldName: string = 'id';
 }

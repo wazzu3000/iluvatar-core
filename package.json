@@ -4,11 +4,13 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && dts-generator --name \"@wazzu/iluvatar-core\" --project . --out index.d.ts"
   },
   "author": "Raúl Alexander Mendoza Muñoz",
   "license": "UNLICENSED",
   "devDependencies": {
+    "dts-generator": "^2.1.0",
     "typescript": "~2.7.2"
   }
 }

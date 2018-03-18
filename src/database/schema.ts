@@ -1,24 +1,4 @@
-import { DatabaseType } from './iluvatar-database';
-
-export type ClassType = { new(...args: any[]) }
-export type JavascriptType = string | ClassType;
-
-/**
- * Estructura basica para un campo de la base de datos
- */
-export type Field = {
-    type: Field | Field[] | string,
-    //javascriptType?: string | ClassType,
-    required?: boolean,
-    default?: any;
-    unique?: boolean,
-    reference?: string,
-    isPrimaryKey?: boolean
-};
-
-export type Fields = { [key: string]: Field }
-export type JavascriptTypes = { [subKey: string]: JavascriptType };
-export type TypesBySchema = { [key: string]: JavascriptTypes };
+import { Dictionary, ClassType, DatabaseType, Field, JavascriptType } from './../types';
 
 /**
  * Clase que almacena la estructura de como deben estar formados los datos en
@@ -26,8 +6,8 @@ export type TypesBySchema = { [key: string]: JavascriptTypes };
  */
 export class Schema {
     private static dbTypesSupported: DatabaseType[] = [];
-    private static typesBySchema: TypesBySchema = {};
-    private javascriptTypes: JavascriptTypes;
+    private static typesBySchema: Dictionary<string, Dictionary<string, JavascriptType>> = {};
+    private javascriptTypes: Dictionary<string, JavascriptType>;
     protected rolesToEdit: any[] = [];
     protected rolesToCreate: any[] = [];
     protected rolesToUpdate: any[] = [];
@@ -38,7 +18,7 @@ export class Schema {
      * @param _name Nombre del esquema que se usará para almacenar u obtener datos
      * @param _fields Arreglo de la estructura de campois que representa el esquema de cada campo en particular
      */
-    protected constructor(private _name: string, private _fields: Fields) {
+    protected constructor(private _name: string, private _fields: Dictionary<string, Field>) {
         // If the types was previusly stored, then add these types to the attribute
         this.javascriptTypes = Schema.typesBySchema[_name];
         if (this.javascriptTypes) {
@@ -46,7 +26,7 @@ export class Schema {
         }
 
         // Store in a static hash the javascripts types for the next new instances
-        let typesBySchema: JavascriptTypes = {};
+        let typesBySchema: Dictionary<string, JavascriptType> = {};
         for (let fieldName in _fields) {
             let field = _fields[fieldName];
             if (typeof(field.type) == 'string') {
@@ -74,7 +54,7 @@ export class Schema {
         return this._name;
     }
 
-    public get fields(): Fields {
+    public get fields(): Dictionary<string, Field> {
         return this._fields;
     }
 

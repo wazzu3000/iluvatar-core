@@ -1,5 +1,5 @@
 import { Schema } from './database/schema';
-import { IController } from './api/controller';
+import { Controller } from './api/controller';
 
 /**
  * Clase que almacena todas las configuraciones necesarias para el proyecto
@@ -69,7 +69,7 @@ export class Config {
      * memoria
      * @param controller Controlador a guardar en memoria
      */
-    public addController(controllerName: string, controller: IController): void {
+    public addController(controllerName: string, controller: typeof Controller): void {
         this.controllers[controllerName] = controller;
     }
 
@@ -78,7 +78,7 @@ export class Config {
      * controlador devuelve nulo como valor
      * @param controllerName Clave del controlador con el que fue almacenado
      */
-    public getController(controllerName : string) : IController {
-        return this.controllers[controllerName] as IController;
+    public getController(controllerName : string): typeof Controller {
+        return this.controllers[controllerName] as typeof Controller;
     }
 }
