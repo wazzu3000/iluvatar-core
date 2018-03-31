@@ -30,9 +30,11 @@ declare module '@wazzu/iluvatar-core' {
 	export class Schema {
 	    private _name;
 	    private _fields;
-	    private static dbTypesSupported;
-	    private static typesBySchema;
-	    private javascriptTypes;
+	    private static dbTypesSupported: DatabaseType[];
+	    private static typesBySchema: Dictionary<string, Dictionary<string, JavascriptType>>;
+		private static uniqueIndexesBySchema: Dictionary<string, string[]>;
+		private javascriptTypes: Dictionary<string, JavascriptType>;
+		private uniqueIndexes: string[];
 	    protected rolesToEdit: any[];
 	    protected rolesToCreate: any[];
 	    protected rolesToUpdate: any[];
@@ -43,15 +45,16 @@ declare module '@wazzu/iluvatar-core' {
 	     * @param _fields Arreglo de la estructura de campois que representa el esquema de cada campo en particular
 	     */
 	    protected constructor(_name: string, _fields: Dictionary<string, Field>);
-	    static setDbTypesSupported(databaseTypes: DatabaseType[]): void;
-	    readonly name: string;
-	    readonly fields: Dictionary<string, Field>;
-	    cleanAndVerifyValues(payload: any): any;
-	    cleanValues(payload: any): any;
-	    canEdit(rol: any): boolean;
-	    canCreate(rol: any): boolean;
-	    canUpdate(rol: any): boolean;
-	    canDelete(rol: any): boolean;
+	    public static setDbTypesSupported(databaseTypes: DatabaseType[]): void;
+	    public readonly name: string;
+	    public readonly fields: Dictionary<string, Field>;
+	    public cleanAndVerifyValues(payload: any): any;
+		public cleanValues(payload: any): any;
+		public getUniqueIndexes(): string[];
+	    public canEdit(rol: any): boolean;
+	    public canCreate(rol: any): boolean;
+	    public canUpdate(rol: any): boolean;
+	    public canDelete(rol: any): boolean;
 	    private verifyType(value, javascriptType);
 	}
 

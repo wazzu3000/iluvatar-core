@@ -7,7 +7,9 @@ import { Dictionary, ClassType, DatabaseType, Field, JavascriptType } from './..
 export class Schema {
     private static dbTypesSupported: DatabaseType[] = [];
     private static typesBySchema: Dictionary<string, Dictionary<string, JavascriptType>> = {};
+    private static uniqueIndexesBySchema: Dictionary<string, string[]> = {};
     private javascriptTypes: Dictionary<string, JavascriptType>;
+    private uniqueIndexes: string[] = [];
     protected rolesToEdit: any[] = [];
     protected rolesToCreate: any[] = [];
     protected rolesToUpdate: any[] = [];
@@ -21,12 +23,14 @@ export class Schema {
     protected constructor(private _name: string, private _fields: Dictionary<string, Field>) {
         // If the types was previusly stored, then add these types to the attribute
         this.javascriptTypes = Schema.typesBySchema[_name];
+        this.uniqueIndexes = Schema.uniqueIndexesBySchema[_name];
         if (this.javascriptTypes) {
             return;
         }
 
         // Store in a static hash the javascripts types for the next new instances
         let typesBySchema: Dictionary<string, JavascriptType> = {};
+        let uniqueIndexes: string[] = [];
         for (let fieldName in _fields) {
             let field = _fields[fieldName];
             if (typeof(field.type) == 'string') {
@@ -42,8 +46,12 @@ export class Schema {
                     throw `The type ${field.type} is incorrect`;
                 }
             }
+            if (field.unique) {
+                uniqueIndexes.push(fieldName);
+            }
         }
         this.javascriptTypes = Schema.typesBySchema[_name] = typesBySchema;
+        this.uniqueIndexes = Schema.uniqueIndexesBySchema[_name] = uniqueIndexes;
     }
 
     public static setDbTypesSupported(databaseTypes: DatabaseType[]): void {
@@ -95,6 +103,10 @@ export class Schema {
             }
         }
         return payloadClean;
+    }
+
+    public getUniqueIndexes(): string[] {
+        return this.uniqueIndexes;
     }
 
     public canEdit(rol: any): boolean {
