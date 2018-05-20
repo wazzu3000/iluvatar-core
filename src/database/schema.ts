@@ -8,7 +8,7 @@ export class Schema {
     private static dbTypesSupported: DatabaseType[] = [];
     private static typesBySchema: Dictionary<string, Dictionary<string, JavascriptType>> = {};
     private static uniqueIndexesBySchema: Dictionary<string, string[]> = {};
-    private javascriptTypes: Dictionary<string, JavascriptType>;
+    private _javascriptTypes: Dictionary<string, JavascriptType>;
     private uniqueIndexes: string[] = [];
     protected rolesToEdit: any[] = [];
     protected rolesToCreate: any[] = [];
@@ -22,9 +22,9 @@ export class Schema {
      */
     protected constructor(private _name: string, private _fields: Dictionary<string, Field>) {
         // If the types was previusly stored, then add these types to the attribute
-        this.javascriptTypes = Schema.typesBySchema[_name];
+        this._javascriptTypes = Schema.typesBySchema[_name];
         this.uniqueIndexes = Schema.uniqueIndexesBySchema[_name];
-        if (this.javascriptTypes) {
+        if (this._javascriptTypes) {
             return;
         }
 
@@ -50,7 +50,7 @@ export class Schema {
                 uniqueIndexes.push(fieldName);
             }
         }
-        this.javascriptTypes = Schema.typesBySchema[_name] = typesBySchema;
+        this._javascriptTypes = Schema.typesBySchema[_name] = typesBySchema;
         this.uniqueIndexes = Schema.uniqueIndexesBySchema[_name] = uniqueIndexes;
     }
 
@@ -66,6 +66,10 @@ export class Schema {
         return this._fields;
     }
 
+    public get javascriptTypes(): Dictionary<string, JavascriptType> {
+        return this._javascriptTypes;
+    }
+
     public cleanAndVerifyValues(payload: any): any {
         // I create a new value in case that is sended a value that not exists in Field's array
         let payloadVerified: any = {};
@@ -73,7 +77,7 @@ export class Schema {
         for (let fieldName in this.fields) {
             let field = this.fields[fieldName];
             let payloadValue = payload[fieldName];
-            let javascriptType = this.javascriptTypes[fieldName];
+            let javascriptType = this._javascriptTypes[fieldName];
             if (payloadValue) {
                 this.verifyType(payloadValue, javascriptType);
                 payloadVerified[fieldName] = payloadValue;
@@ -98,7 +102,7 @@ export class Schema {
         for (let fieldName in this.fields) {
             let payloadValue = payload[fieldName];
             if (payloadValue) {
-                this.verifyType(payloadValue, this.javascriptTypes[fieldName]);
+                this.verifyType(payloadValue, this._javascriptTypes[fieldName]);
                 payloadClean[fieldName] = payloadValue;
             }
         }

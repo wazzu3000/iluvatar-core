@@ -33,7 +33,7 @@ declare module '@wazzu/iluvatar-core' {
 	    private static dbTypesSupported: DatabaseType[];
 	    private static typesBySchema: Dictionary<string, Dictionary<string, JavascriptType>>;
 		private static uniqueIndexesBySchema: Dictionary<string, string[]>;
-		private javascriptTypes: Dictionary<string, JavascriptType>;
+		private _javascriptTypes: Dictionary<string, JavascriptType>;
 		private uniqueIndexes: string[];
 	    protected rolesToEdit: any[];
 	    protected rolesToCreate: any[];
@@ -47,7 +47,8 @@ declare module '@wazzu/iluvatar-core' {
 	    protected constructor(_name: string, _fields: Dictionary<string, Field>);
 	    public static setDbTypesSupported(databaseTypes: DatabaseType[]): void;
 	    public readonly name: string;
-	    public readonly fields: Dictionary<string, Field>;
+		public readonly fields: Dictionary<string, Field>;
+		public readonly javascriptTypes: Dictionary<string, JavascriptType>;
 	    public cleanAndVerifyValues(payload: any): any;
 		public cleanValues(payload: any): any;
 		public getUniqueIndexes(): string[];
@@ -240,7 +241,9 @@ declare module '@wazzu/iluvatar-core' {
 	// import { IluvatarDatabaseInstancier } from '@wazzu/iluvatar-core';
 	export abstract class IluvatarDatabase {
 	    abstract getTypesSupported(): DatabaseType[];
-	    abstract newIluvatarDatabaseInstancier(_schemaName: string): IluvatarDatabaseInstancier;
+		abstract newIluvatarDatabaseInstancier(_schemaName: string): IluvatarDatabaseInstancier;
+		abstract createSchemaInDb(schema: Schema);
+    	abstract createUniqueKey(schemaName: string, fieldName: string);
 	}
 
 	export class AppModel {
@@ -260,26 +263,39 @@ declare module '@wazzu/iluvatar-core' {
 		idFieldName: string;
 	}
 
-	export class AuthModel {
-	    enabled: boolean;
-	    secretKey: string;
-	    ttl: number;
-		userSchemaName: string;
-		userFieldName: string;
-		passwordFieldName: string;
-	    rolFieldName: string;
-	    adminFieldValue: any;
+	class AuthModel {
+	    public enabled: boolean;
+	    public secretKey: string;
+	    public ttl: number;
+		public user: AuthUserModel;
+	    public adminFieldValue: any;
 	}
 
-	export class ErrorMaster extends Error {
+	class AuthUserModel {
+		public schemaName: string;
+		public emailFieldName: string;
+		public userFieldName: string;
+		public passwordFieldName: string;
+		public rolFieldName: string;
+	}
+
+	class ErrorMaster extends Error {
 	    private _statusCode;
 	    constructor(message: string, _statusCode: number);
 	    readonly statusCode: number;
 	}
 
 	// import { ErrorMaster } from '@wazzu/iluvatar-core';
-	export class DatabaseError extends ErrorMaster {
+	class DatabaseError extends ErrorMaster {
 	    constructor(message: string);
 	}
 
+	class EmailModel {
+		public debug: boolean;
+		public user: string;
+		public password: string;
+		public host: string;
+		public port: number;
+		public secureProtocol: string;
+	}
 }
